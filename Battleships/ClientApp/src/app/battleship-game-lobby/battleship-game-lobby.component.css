@@ -1,0 +1,48 @@
+.lobby {
+  display: grid;
+  grid-template:
+                 ". . . . . . ."
+                 "m m m m m l ."
+                 "c c c c c l .";
+  grid-template-columns: repeat(7, minmax(50px, 1fr));
+  /* ReSharper disable once CssNotResolved */
+  grid-gap: 10px;
+  grid-auto-rows: 20px;
+  grid-template-rows: repeat(3, minmax(20px, 100%));
+}
+
+@media screen and (max-width: 1200px) {
+  .lobby {
+    grid-template: "."
+                   "m"
+                   "l"
+                   "c";
+    grid-template-columns: 100%;
+  }
+
+  .livePlayers li {
+    display: inline;
+  }
+
+  .livePlayers li:after {
+    content: "; ";
+  }
+}
+
+.livePlayers {
+  grid-area: l;
+}
+
+.startMenu {
+  grid-area: m;
+}
+
+.chat {
+  height: 300px;
+  grid-area: c;
+}
+
+.chatBox {
+  overflow-y: scroll;
+  height: 100%;
+}

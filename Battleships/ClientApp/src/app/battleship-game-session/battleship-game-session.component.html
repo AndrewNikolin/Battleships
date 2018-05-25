@@ -1,0 +1,38 @@
+<ng4-loading-spinner [loadingText]='infoMessage'></ng4-loading-spinner>
+<p>
+  battleship-game-session works!
+</p>
+
+<div class="game-area">
+  <div *ngIf="infoMessage" class="infoArea">
+    <p>{{infoMessage}}</p>
+  </div>
+  <div class="playerBoard">
+    <p>Your battlefield</p>
+    <table class="table-bordered">
+      <tr *ngFor="let row of playerBattlefield.cells">
+        <td (click)="ownCellClick(cell)"
+            [class.battlefield-cell-ship]="cell.state == 1"
+            [class.battlefield-cell-empty]="cell.state == 0"
+            [class.battlefield-cell-preship]="cell.state == 4"
+            [class.battlefield-cell-damaged]="cell.state == 2"
+            [class.battlefield-cell-miss]="cell.state == 3"
+            class="battlefield-cell"
+            *ngFor="let cell of row"></td>
+      </tr>
+    </table>
+  </div>
+  <div class="opponentBoard">
+    <p *ngIf="opponentName">{{opponentName}}'s battlefield</p>
+    <table class="table-bordered">
+      <tr *ngFor="let row of opponentBattlefield.cells">
+        <td (click)="opponentCellClick(cell)"
+            [class.battlefield-cell-damaged]="cell.state == 2"
+            [class.battlefield-cell-empty]="cell.state == 0"
+            [class.battlefield-cell-miss]="cell.state == 3"
+            class="battlefield-cell"
+            *ngFor="let cell of row"></td>
+      </tr>
+    </table>
+  </div>
+</div>

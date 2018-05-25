@@ -1,0 +1,73 @@
+.battlefield-cell {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  cursor: pointer;
+}
+
+.battlefield-cell-empty {
+  background-color: navy;
+}
+
+.battlefield-cell-damaged {
+  background-color: firebrick;
+}
+
+.battlefield-cell-ship {
+  background-color: cadetblue;
+}
+
+.battlefield-cell-preship {
+  background-color: #bfd8d9;
+}
+
+.battlefield-cell-miss {
+  background-color: #4c4ca6;
+}
+
+.table-bordered {
+  table-layout: fixed;
+}
+
+.game-area {
+  display: grid;
+  grid-template:
+               "i i i"
+               "p . o";
+  /* ReSharper disable once CssNotResolved */
+  grid-gap: 10px;
+  grid-auto-rows: 20px;
+}
+
+@media screen and (max-width: 1200px) {
+  .game-area {
+    grid-template:
+                 "i"
+                 "p"
+                 "."
+                 "o";
+  }
+}
+
+.playerBoard {
+  grid-area: p;
+}
+
+.opponentBoard {
+  grid-area: o;
+}
+
+.chat {
+  height: 300px;
+  grid-area: c;
+}
+
+.chatBox {
+  overflow-y: scroll;
+  height: 100%;
+}
+
+.infoArea {
+  grid-area: i;
+}

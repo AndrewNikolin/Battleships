@@ -1,0 +1,25 @@
+<ng4-loading-spinner [loadingText]='infoMessage'></ng4-loading-spinner>
+<div style="margin-top: 30px;" *ngIf="!gameInitialized()">
+  <input type="text" #tempPlayerName placeholder="Player name" />
+  <button (click)="setUp(tempPlayerName.value)" value="Register">Register</button>
+</div>
+<div id="gameLobby" class="lobby" *ngIf="gameInitialized()">
+  <div class="startMenu">
+    <button (click)="addToPlayQueue()">
+      Start game with a random person
+    </button>
+  </div>
+  <div class="livePlayers">
+    <p>List of online players:</p>
+    <ul *ngIf="listOfPlayers">
+      <li *ngFor="let player of listOfPlayers">{{player}}</li>
+    </ul>
+  </div>
+  <div class="chat">
+    <ul *ngIf="chatMessages" class="list-unstyled chatBox">
+      <li *ngFor="let message of chatMessages"><b>{{message.author}}:</b> {{message.message}}</li>
+    </ul>
+    <input type="text" placeholder="New message" #newMessage (keyup.enter)="sendMessage(newMessage.value); newMessage.value = ''" />
+    <button (click)="sendMesage(newMessage.value); newMessage.value = ''">Send</button>
+  </div>
+</div>
