@@ -1,5 +1,5 @@
 import {Component, OnInit, OnDestroy} from '@angular/core';
-import {HubConnection} from '@aspnet/signalr';
+import {HubConnection, LogLevel, HubConnectionBuilder} from '@aspnet/signalr';
 import {CookieService} from 'ngx-cookie-service';
 import {Router} from "@angular/router";
 import {Ng4LoadingSpinnerService} from 'ng4-loading-spinner';
@@ -36,7 +36,10 @@ export class BattleshipGameLobbyComponent implements OnInit, OnDestroy {
     this.infoMessage = 'Connecting to game server...';
     this.spinnerService.show();
 
-    this.gameLobbyHub = new HubConnection(lobbyHub);
+    this.gameLobbyHub = new HubConnectionBuilder()
+      .withUrl(lobbyHub)
+      .configureLogging(LogLevel.Information)
+      .build();
 
     this.gameLobbyHub.on(clientRefreshPlayers, (playersList) => this.refreshPlayersList(playersList));
     this.gameLobbyHub.on(hubSendChatMessage, (message) => this.updateChat(message));

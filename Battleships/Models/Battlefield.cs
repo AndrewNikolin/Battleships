@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Battleships.Models
@@ -6,7 +7,7 @@ namespace Battleships.Models
     public class Battlefield
     {
         private readonly Dictionary<Coordinate, CellState> _field = new Dictionary<Coordinate, CellState>();
-        private readonly List<IEnumerable<Coordinate>> _placedShips = new List<IEnumerable<Coordinate>>();
+        private readonly List<Dictionary<Coordinate, CellState>> _placedShips = new List<Dictionary<Coordinate, CellState>>();
 
         public bool AllShipsPlaced => _placedShips.Count == 10;
 
@@ -21,23 +22,49 @@ namespace Battleships.Models
             }
         }
 
-        public CellState FireAtCell(Coordinate cellCoordinate)
+        public Dictionary<Coordinate, CellState> FireAtCell(Coordinate cellCoordinate)
         {
+            var result = new Dictionary<Coordinate, CellState>();
+
             switch (_field[cellCoordinate])
             {
                 case CellState.Empty:
                     _field[cellCoordinate] = CellState.Miss;
-                    return CellState.Miss;
+                    result.Add(cellCoordinate, CellState.Miss);
+                    break;
                 case CellState.Ship:
                     _field[cellCoordinate] = CellState.Damaged;
-                    return CellState.Damaged;
+                    result.Add(cellCoordinate, CellState.Damaged);
+
+                    var ship = _placedShips.First(s => s.ContainsKey(cellCoordinate));
+                    ship[cellCoordinate] = CellState.Damaged;
+                    if (ship.All(c => c.Value == CellState.Damaged))
+                    {
+                        foreach (var cell in ship)
+                        {
+                            var damagedCells = cell.Key.GetCoordinatesAround();
+
+                            damagedCells.ForEach(c =>
+                            {
+                                _field[c] = CellState.Damaged;
+                                result[c] = CellState.Damaged;
+                            });
+                        }
+                    }
+
+                    break;
                 case CellState.Miss:
-                    return CellState.Miss;
+                    result.Add(cellCoordinate, CellState.Miss);
+                    break;
                 case CellState.Damaged:
-                    return CellState.Damaged;
+                    result.Add(cellCoordinate, CellState.Damaged);
+                    break;
                 default:
-                    return CellState.Empty;
+                    result.Add(cellCoordinate, CellState.Empty);
+                    break;
             }
+
+            return result;
         }
 
         public bool TryPlaceShip(IEnumerable<Coordinate> coordinates)
@@ -91,115 +118,126 @@ namespace Battleships.Models
                 _field[coordinate] = CellState.Ship;
             }
 
-            _placedShips.Add(coordinatesList);
+            var newShip = new Dictionary<Coordinate, CellState>();
+            coordinatesList.ForEach(c => newShip.Add(c, CellState.Ship));
+
+            _placedShips.Add(newShip);
 
             return true;
         }
 
         private bool ValidateSingleCoordinate(Coordinate coordinate)
         {
-            bool result;
-
-            if (coordinate.Row == 1)
-            {
-                result = ValidateBottomCell(coordinate);
-
-                if (coordinate.Column == 1)
-                {
-                    result = result && ValidateRightCell(coordinate) && ValidateBottomRightCell(coordinate);
-                }
-                else if (coordinate.Column == 10)
-                {
-                    result = result && ValidateLeftCell(coordinate) && ValidateBottomLeftCell(coordinate);
-                }
-                else
-                {
-                    result = result && ValidateLeftCell(coordinate) && ValidateRightCell(coordinate) &&
-                             ValidateBottomLeftCell(coordinate) &&
-                             ValidateBottomRightCell(coordinate);
-                }
-            }
-            else if (coordinate.Row == 10)
-            {
-                result = ValidateTopCell(coordinate);
-
-                switch (coordinate.Column)
-                {
-                    case 1:
-                        result = result && ValidateRightCell(coordinate) && ValidateTopRightCell(coordinate);
-                        break;
-                    case 10:
-                        result = result && ValidateLeftCell(coordinate) && ValidateTopLeftCell(coordinate);
-                        break;
-                    default:
-                        result = result && ValidateLeftCell(coordinate) && ValidateRightCell(coordinate) &&
-                                 ValidateTopLeftCell(coordinate) &&
-                                 ValidateTopRightCell(coordinate);
-                        break;
-                }
-            }
-            else if (coordinate.Column == 1)
-            {
-                result = ValidateRightCell(coordinate) && ValidateTopCell(coordinate) && ValidateBottomCell(coordinate) &&
-                         ValidateBottomRightCell(coordinate) &&
-                         ValidateTopRightCell(coordinate);
-            }
-            else if (coordinate.Column == 10)
-            {
-
-                result = ValidateLeftCell(coordinate) && ValidateTopCell(coordinate) && ValidateBottomCell(coordinate) &&
-                         ValidateBottomLeftCell(coordinate) &&
-                         ValidateTopLeftCell(coordinate);
-            }
-            else
-            {
-                result = ValidateRightCell(coordinate) && ValidateLeftCell(coordinate) && ValidateTopCell(coordinate) &&
-                         ValidateBottomCell(coordinate) && ValidateTopLeftCell(coordinate) &&
-                         ValidateTopRightCell(coordinate) && ValidateBottomLeftCell(coordinate) &&
-                         ValidateBottomRightCell(coordinate);
-            }
+            var result = ValidateRightCell(coordinate) && ValidateLeftCell(coordinate) && ValidateTopCell(coordinate) &&
+                          ValidateBottomCell(coordinate) && ValidateTopLeftCell(coordinate) &&
+                          ValidateTopRightCell(coordinate) && ValidateBottomLeftCell(coordinate) &&
+                          ValidateBottomRightCell(coordinate);
 
             return result;
         }
 
         private bool ValidateBottomCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column, coordinate.Row + 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowNext();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateTopCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column, coordinate.Row - 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowPrevious();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateLeftCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column - 1, coordinate.Row)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.ColumnPrevious();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateRightCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column + 1, coordinate.Row)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.ColumnNext();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateTopLeftCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column - 1, coordinate.Row - 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowPrevious().ColumnPrevious();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateTopRightCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column + 1, coordinate.Row - 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowPrevious().ColumnNext();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateBottomLeftCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column - 1, coordinate.Row + 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowNext().ColumnPrevious();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateBottomRightCell(Coordinate coordinate)
         {
-            return _field[new Coordinate(coordinate.Column + 1, coordinate.Row + 1)] != CellState.Ship;
+            try
+            {
+                var checkCell = coordinate.RowNext().ColumnNext();
+                return _field[checkCell] != CellState.Ship;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return true;
+            }
         }
 
         private bool ValidateShipSize(int size)

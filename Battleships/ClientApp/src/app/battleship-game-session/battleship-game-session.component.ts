@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Ng4LoadingSpinnerService } from 'ng4-loading-spinner';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CookieService } from 'ngx-cookie-service';
-import { HubConnection } from '@aspnet/signalr';
+import { HubConnection, LogLevel, HubConnectionBuilder } from '@aspnet/signalr';
 import { Battlefield } from '../models/battlefield';
 import { Coordinate } from '../models/coordinate';
 import { CellState } from '../models/cell-state';
@@ -46,13 +46,16 @@ export class BattleshipGameSessionComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     this.spinnerService.show();
 
-    this.gameHub = new HubConnection(gameHub);
+    this.gameHub = new HubConnectionBuilder()
+      .withUrl(gameHub)
+      .configureLogging(LogLevel.Information)
+      .build();
 
     this.gameHub.on('startPlacingShips', (opponentName) => this.startPlacingShips(opponentName));
     this.gameHub.on('nextTurn', (turn) => this.nextTurn(turn));
     this.gameHub.on('gameWon', () => this.gameFinished(true));
     this.gameHub.on('gameLost', () => this.gameFinished(false));
-    this.gameHub.on('updateCellState', (cellState: CellState, cellCoordinate: Coordinate) => this.updateCellState(cellCoordinate, cellState));
+    this.gameHub.on('updateCellState', (cellState: CellState, cellCoordinate: Coordinate, ownField: boolean = true) => this.updateCellState(cellCoordinate, cellState, ownField));
 
     await this.gameHub.start();
 
@@ -135,11 +138,16 @@ export class BattleshipGameSessionComponent implements OnInit, OnDestroy {
     if (this.currentShip) {
       this.infoMessage = `Place ship with size of ${this.currentShip}`;
     } else {
-      this.infoMessage = 'Waiting for the game to start...';
+      if (this.infoMessage !== 'Your turn')
+        this.infoMessage = 'Waiting for the game to start...';
     }
   }
 
-  updateCellState(cellCoordinate: Coordinate, cellState: CellState): void {
-    this.playerBattlefield.updateCellState(cellCoordinate, cellState);
+  updateCellState(cellCoordinate: Coordinate, cellState: CellState, ownField: boolean): void {
+    if (ownField)
+      this.playerBattlefield.updateCellState(cellCoordinate, cellState);
+    else {
+      this.opponentBattlefield.updateCellState(cellCoordinate, cellState);
+    }
   }
 }

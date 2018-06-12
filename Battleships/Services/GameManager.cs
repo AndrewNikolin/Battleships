@@ -151,16 +151,23 @@ namespace Battleships.Services
                 {
                     return CellState.Empty;
                 }
-
-
+                
                 var game = _liveGames.Single(g => g.GameId.Equals(gameGuid));
 
                 var result = game.FireAtCell(cellCoordinate, contextConnectionId);
 
-                await gameSessionHub.Clients.Client(result.cellOwner.GameSessionConnectionId)
-                    .SendAsync("updateCellState", result.cellState, cellCoordinate);
+                foreach (var cellState in result.cellStates)
+                {
+                    await gameSessionHub.Clients.Client(result.cellOwner.GameSessionConnectionId)
+                        .SendAsync("updateCellState", cellState.Value, cellState.Key);
+
+                    await gameSessionHub.Clients.Client(contextConnectionId)
+                        .SendAsync("updateCellState", cellState.Value, cellState.Key, false);
+                }
+
                 NextTurn(game);
-                return result.cellState;
+
+                return result.cellStates.Single(c => c.Key == cellCoordinate).Value;
             }
 
             return CellState.Empty;
@@ -178,8 +185,8 @@ namespace Battleships.Services
 
             var players = game.GetPlayers();
 
-            gameSessionHub.Clients.Client(players.player1.GameSessionConnectionId).SendAsync("nextTurn", game.player1Turn);
-            gameSessionHub.Clients.Client(players.player2.GameSessionConnectionId).SendAsync("nextTurn", !game.player1Turn);
+            gameSessionHub.Clients.Client(players.player1.GameSessionConnectionId).SendAsync("nextTurn", game.Player1Turn);
+            gameSessionHub.Clients.Client(players.player2.GameSessionConnectionId).SendAsync("nextTurn", !game.Player1Turn);
         }
     }
 }

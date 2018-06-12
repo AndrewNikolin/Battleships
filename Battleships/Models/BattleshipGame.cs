@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Battleships.Models
 {
@@ -13,7 +14,7 @@ namespace Battleships.Models
         private readonly Battlefield _player1Field;
         private readonly Battlefield _player2Field;
 
-        public bool player1Turn;
+        public bool Player1Turn;
 
         public bool AllowPlacingShips => !string.IsNullOrWhiteSpace(_player1.GameSessionConnectionId) &&
                                    !string.IsNullOrWhiteSpace(_player2.GameSessionConnectionId);
@@ -48,7 +49,7 @@ namespace Battleships.Models
             _player1Field = new Battlefield();
             _player2Field = new Battlefield();
 
-            player1Turn = (new Random()).Next(100) < 50;
+            Player1Turn = (new Random()).Next(100) < 50;
         }
 
         public bool TryRegisterPlayer(Guid playerId, string gameSessionConnectionId)
@@ -80,25 +81,34 @@ namespace Battleships.Models
             return false;
         }
 
-        public (CellState cellState, Player cellOwner) FireAtCell(Coordinate cellCoordinate, string playerConnectionId)
+        public (Dictionary<Coordinate, CellState> cellStates, Player cellOwner) FireAtCell(Coordinate cellCoordinate, string playerConnectionId)
         {
-            if (player1Turn && _player1.GameSessionConnectionId.Equals(playerConnectionId))
+            var result = new Dictionary<Coordinate, CellState>()
             {
-                var result = _player2Field.FireAtCell(cellCoordinate);
-                player1Turn = !player1Turn;
+                {cellCoordinate, CellState.Empty }
+            };
+
+            if (Player1Turn && _player1.GameSessionConnectionId.Equals(playerConnectionId))
+            {
+                result = _player2Field.FireAtCell(cellCoordinate);
+
+                if (result.All(c => c.Value != CellState.Damaged))
+                    Player1Turn = !Player1Turn;
 
                 return (result, _player2);
             }
-            else if (!player1Turn && _player2.GameSessionConnectionId.Equals(playerConnectionId))
-            {
-                var result = _player1Field.FireAtCell(cellCoordinate);
 
-                player1Turn = !player1Turn;
+            if (!Player1Turn && _player2.GameSessionConnectionId.Equals(playerConnectionId))
+            {
+                result = _player1Field.FireAtCell(cellCoordinate);
+
+                if (result.All(c => c.Value != CellState.Damaged))
+                    Player1Turn = !Player1Turn;
 
                 return (result, _player1);
             }
 
-            return (CellState.Empty, null);
+            return (result, null);
         }
 
         public (Player player1, Player player2) GetPlayers()
